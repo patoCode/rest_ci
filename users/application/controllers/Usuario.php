@@ -25,7 +25,6 @@ class Usuario extends REST_Controller
             'password'=> $password,
             'email'=> $email,
         );
-        //print_r($input);exit;
         $this->usuario->add($input);
         echo $nombre;
     }
@@ -38,6 +37,5 @@ class Usuario extends REST_Controller
         $array = array("ELIMINADO ", $usuario);
         $this->usuario->delete($id);
         $this->response($array, REST_Controller::HTTP_OK);
-    }
-    public function 
+    }    
 }
