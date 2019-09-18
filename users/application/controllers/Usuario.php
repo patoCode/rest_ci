@@ -26,6 +26,8 @@ class Usuario extends REST_Controller
             'email'=> $email,
         );
         $this->usuario->add($input);
+        $result = $this->queue->push('hello', array('Hello', 'World'), 'testing.push');
+        var_dump($result);
         echo $nombre;
     }
     public function all_get(){
