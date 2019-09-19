@@ -10,6 +10,7 @@ class Usuario extends REST_Controller
     public function index_get(){
         $this->load->view('public/usuario');
     }
+
     public function add_post(){
         $nombre = $this->input->post('nombre');
         $apellido = $this->input->post('apellido');
@@ -17,6 +18,7 @@ class Usuario extends REST_Controller
         $username = $this->input->post('username');
         $password = $this->input->post('password');
         $email = $this->input->post('email');
+        $id = $this->input->post('id');
         $input = array(
             'nombre'   => $nombre,
             'apellido' => $apellido,
@@ -25,19 +27,47 @@ class Usuario extends REST_Controller
             'password'=> $password,
             'email'=> $email,
         );
-        $this->usuario->add($input);
-        $result = $this->queue->push('hello', array('Hello', 'World'), 'testing.push');
-        var_dump($result);
-        echo $nombre;
+        if($id == null){
+            $this->usuario->add($input);
+            echo "INSERT OK";
+        }else{
+            $this->usuario->update($input, $id);
+            $this->queue->push('BBDD', array($nombre, $id), 'testing.push');            
+            echo "INSERT RABBIT MAS";
+        }       
     }
+
+    public function search_post(){
+        $username = $this->input->post('username');
+        $nombre = $this->input->post('nombre');
+
+        $this->queue->push('BBDD', array($usuario->nombre, $usuario->id), 'testing.push');            
+        echo "CONTAR KUDOS";
+
+        $resultados = $this->usuario->search($username, $nombre);
+        $this->response($resultados, REST_Controller::HTTP_OK);
+    }
+
     public function all_get(){
         $resp = $this->usuario->getAll();
         $this->response($resp, REST_Controller::HTTP_OK);
     }
+
+    public function profile_get($id){
+        $usuario = $this->usuario->getById($id);
+
+        $this->queue->push('BBDD', array($usuario->nombre, $usuario->id), 'testing.push');            
+        echo "CONTAR KUDOS";
+
+        $this->response($usuario, REST_Controller::HTTP_OK);
+    }
+
     public function delete_delete($id){
         $usuario = $this->usuario->getById($id);
         $array = array("ELIMINADO ", $usuario);
+        $this->queue->push('BBDD', array($usuario->nombre, $usuario->id), 'testing.push');            
+        echo "BORRA KUDOS";
         $this->usuario->delete($id);
         $this->response($array, REST_Controller::HTTP_OK);
-    }    
+    }  
 }

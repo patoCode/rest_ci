@@ -5,14 +5,14 @@ module.exports = (app) => {
     app.post('/kudos', kudos.create);
 
     // Retrieve all
-    app.get('/kudoss', kudos.findAll);
+    app.get('/list', kudos.findAll);
 
     // Retrieve a single 
-    app.get('/kudos/:noteId', kudos.findOne);
+    app.get('/kudos/:kudosId', kudos.findOne);
 
     // Update
-    app.put('/kudos/:noteId', kudos.update);
+    app.put('/kudos/:kudosId', kudos.update);
 
     // Delete
-    app.delete('/kudos/:noteId', kudos.delete);
+    app.delete('/kudos/:kudosId', kudos.delete);
 }
