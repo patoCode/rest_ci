@@ -1,92 +1,137 @@
-var amqp = require('amqplib/callback_api');
+const amqp = require('amqplib/callback_api')
+const rbbConfig = require('../../config/rabbit.config.js')
 const Kudos = require('../models/kudos.model.js');
-
+const _self = this;
 // Create  
-exports.create = (req, res) => {    
-    if(!req.body) {
+exports.create = async (req, res) => {
+    var queueUser = "QUEUE-"
+    if (!req.body) {
         return res.status(400).send({
             message: "kudos no puede estar vacio"
-        });
+        })
     }
     const kudos = new Kudos({
         fuente: req.body.fuente,
-        fuenteName: req.body.fuenteName, 
-        destino:req.body.destino,
-        destinoName:req.body.destinoName,
-        tema:req.body.tema,
-        lugar:req.body.lugar,
-        texto:req.body.text || "No text"
-    });
-    kudos.save().then(data => {
-        amqp.connect('amqp://10.241.22.191:5672', function(error0, connection) {
-            if (error0) {
-                throw error0;
-              }
-              connection.createChannel(function(error1, channel) {
-                if (error1) {
-                  throw error1;
-                }
-                var queue = 'BBDD';
-                var msg = 'Hello COLA DESDE NODEJS';
-            
-                channel.assertQueue(queue, {
-                  durable: false
-                });
-            
-                channel.sendToQueue(queue, Buffer.from(msg));
-                console.log(" [x] Sent %s", msg);
-              });
-        });
-        res.send(data);
-    }).catch(err => {
-        res.status(500).send({
-            message: err.message || "Error mientras se creaba el KUDOS."
-        });
-    });
-};
+        fuenteName: req.body.fuenteName,
+        destino: req.body.destino,
+        destinoName: req.body.destinoName,
+        tema: req.body.tema,
+        lugar: req.body.lugar,
+        texto: req.body.text || "No text"
+    })
+    await kudos.save()
+    queueUser = "QUEUE-" + kudos.destino
+
+    // RABBIT SUMA LOS KUDOS CON AYUDA DEL STATS
+    amqp.connect(rbbConfig.url, function (error0, connection) {
+        connection.createChannel(function (error1, channel) {
+            channel.assertQueue('', {
+                exclusive: true
+            }, (err, q) => {
+                if (err)
+                    throw err
+
+                var correlationId = generateUuid()
+                var fuente = kudos.fuente
+                channel.consume(q.queue, (msg) => {
+                    if (msg.properties.correlationId == correlationId) {
+                    }
+                }, { noAck: true })
+                channel.sendToQueue(rbbConfig.queueStats,
+                    Buffer.from(fuente.toString()), {
+                        correlationId: correlationId,
+                        replyTo: q.queue
+                    })
+            })
+        })
+    })
+    // END RABBIT
+
+    // RABBIT PUBLICA KUDOS DEL USUARIO
+    amqp.connect(rbbConfig.url, (error0, connection) => {
+        connection.createChannel((error1, channel) => {
+            channel.assertQueue(queueUser, {
+                durable: true
+            })
+            channel.prefetch(1)
+            channel.consume(queueUser, async function reply(msg) {
+                var n = msg.content.toString()
+                var r = await _self.findOneRbb(n)
+                channel.sendToQueue(msg.properties.replyTo,
+                    Buffer.from(JSON.stringify(r)), {
+                        correlationId: msg.properties.correlationId
+                    })
+                channel.ack(msg)
+            })
+        })
+    })
+    // FIN RABBIT    
+
+    res.redirect('/stats/add')
+}
 
 // LIST
-exports.findAll = (req, res) => {
-    Kudos.find().then( kudos => {
-        res.send(kudos);
-    }).catch(err => {
-        res.status(500).send({
-            message: err.message || "Some error occurred while retrieving Kudos."
-        });
-    });
-
+exports.findAll = async (req, res) => {
+    const kudos = await Kudos.find()
+    res.send(kudos)
 };
 
 // Find
-exports.findOne = async (req, res) => {    
+exports.findOne = async (req, res) => {
     const { kudosId } = req.params
-    const listKudos = await Kudos.find({destino:kudosId}).sort({fecha:'desc'})
-	res.send(listKudos)
+    const listKudos = await Kudos.find({ destino: kudosId }).sort({ fecha: 'desc' })
+    res.send(listKudos)
 }
 
-// Update
-exports.update = (req, res) => {    
+exports.findOneRbb = async (id) => {
+    console.log(id)
+    var listKudos = await Kudos.find({ destino: id }).sort({ fecha: 'desc' })
+    return listKudos
+}
+
+// Update   
+exports.update = (req, res) => {
 }
 
 // Delete
-exports.delete = (req, res) => {
-    Kudos.findByIdAndRemove(req.params.kudosId)
-    .then(kudos => {
-        if(!kudos) {
-            return res.status(404).send({
-                message: "kudos no encontrado con el id " + req.params.kudosId
-            });
-        }
-        res.send({message: "kudos eliminado"});
-    }).catch(err => {
-        if(err.kind === 'ObjectId' || err.name === 'NotFound') {
-            return res.status(404).send({
-                message: "kudos no encontrado con el id " + req.params.kudosId
-            });                
-        }
-        return res.status(500).send({
-            message: "No es posible borrar el kudos" + req.params.kudosId
-        });
-    });
+exports.delete = async (req, res) => {
+    const { _id } = req.params
+    const kudosReg = await Kudos.findById(_id)
+    console.log(kudosReg)
+    await Kudos.findOneAndDelete(_id)
+    // INIT RABBIT
+    amqp.connect(rbbConfig.url, function (error0, connection) {
+        connection.createChannel(function (error1, channel) {
+            channel.assertQueue('', {
+                exclusive: true
+            }, (err, q) => {
+                if (err)
+                    throw err
+                var correlationId = generateUuid()
+                var fuente = kudosReg.fuente
+                channel.consume(q.queue, (msg) => {
+                    if (msg.properties.correlationId == correlationId) {
+                    }
+                }, { noAck: true })
+                channel.sendToQueue(rbbConfig.queueStatsDel,
+                    Buffer.from(fuente.toString()), {
+                        correlationId: correlationId,
+                        replyTo: q.queue
+                    })
+            })
+        })
+    })
+    // END RABBIT
+    res.redirect('/stats/remove')
+}
 
-};
+exports.deleteMasive = async (id) => {
+    const result = await Kudos.remove({ destino: id })
+    return "ok";
+}
+
+function generateUuid() {
+    return Math.random().toString() +
+        Math.random().toString() +
+        Math.random().toString();
+}

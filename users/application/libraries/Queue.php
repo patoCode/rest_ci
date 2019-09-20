@@ -10,7 +10,7 @@
 require_once __DIR__ . '/../third_party/vendor/autoload.php';
 
 
-use PhpAmqpLib\Connection\AMQPConnection;
+use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 
 class Queue {
@@ -48,7 +48,7 @@ class Queue {
   		}
 
   		// Connecting to message server
-  		$this->connection = new AMQPConnection($this->host, $this->port, $this->user, $this->pass);
+  		$this->connection = new AMQPStreamConnection($this->host, $this->port, $this->user, $this->pass);
   		$this->channel = $this->connection->channel();
 
     }

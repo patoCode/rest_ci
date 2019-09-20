@@ -13,8 +13,8 @@ mongoose.connect(dbConfig.url, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 })
-.then(db=> console.log('DB is connect'))
-.catch(err => console.error(err));
+    .then(db => console.log('DB is connect'))
+    .catch(err => console.error(err));
 
 // SETTINGS
 app.set('port', process.env.PORT || 5002);
@@ -28,12 +28,13 @@ app.use(bodyParser.urlencoded({ extended: true }))
 
 // ROUTES
 app.get('/', (req, res) => {
-    res.json({"message": "Welcome to EasyNotes application. Take notes quickly. Organize and keep track of all your notes."});
+    res.json({ "message": "KUDOS APP v-0.0.2" });
 });
 
-require('./app/routes/kudos.routes.js')(app);
+require('./app/routes/kudos.routes.js')(app)
+require('./app/routes/stats.routes.js')(app)
 
 // INIT SERVER 
-app.listen(app.get('port'),() => {
-	console.log(`SERVER ON PORT ${app.get('port')}`);
+app.listen(app.get('port'), () => {
+    console.log(`SERVER ON PORT ${app.get('port')}`);
 })

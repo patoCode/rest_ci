@@ -16,6 +16,12 @@ class Usuario_model extends CI_Model {
   public function add($input){
     $this->db->insert('usuario',$input);
   }
+  public function addQty($id){
+    return $this->db->query("UPDATE usuario SET kudos = (SELECT kudos FROM usuario WHERE id = $id) +1 WHERE id = $id");    
+  }
+  public function discountQty($id){
+    return $this->db->query("UPDATE usuario SET kudos = (SELECT kudos FROM usuario WHERE id = $id) -1 WHERE id = $id");    
+  }
   public function update($input, $id){    
     $this->db->where('id', $id);
     $this->db->update('usuario',$input);

@@ -14,5 +14,5 @@ module.exports = (app) => {
     app.put('/kudos/:kudosId', kudos.update);
 
     // Delete
-    app.delete('/kudos/:kudosId', kudos.delete);
+    app.delete('/kudos/:_id', kudos.delete)
 }
