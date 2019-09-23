@@ -10,7 +10,7 @@
                     <div class="card-body">                        
                         
                         <!-- Default form register -->
-                        <form class="text-center border border-light p-5" action="<?php echo base_url()?>Usuario/add" method="POST">
+                        <form class="text-center border border-light p-5" action="http://localhost:5003/user/add" method="POST">
                             
 
                             <div class="form-row mb-4">
