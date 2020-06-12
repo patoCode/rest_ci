@@ -1,4 +1,4 @@
-# rest_ci
+# KUDOS - HW 04
 API KUDOS
 =========
 1. Descargar el repositorio 
